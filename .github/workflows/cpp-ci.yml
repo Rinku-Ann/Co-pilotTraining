@@ -2,24 +2,23 @@ name: C++ CI
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
   pull_request:
-    branches: [master]
+    branches:
+      - master
 
 permissions:
   contents: read
 
 jobs:
   build-and-test:
-    runs-on: [windows-latest]
-    defaults:
-      run:
-        shell: msys2 {0}
+    runs-on: windows-latest
     steps:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Set up MSYS2 UCRT64
+      - name: Set up MSYS2 UCRT64 and install build tools
         uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
@@ -30,10 +29,22 @@ jobs:
             mingw-w64-ucrt-x86_64-make
 
       - name: Configure CMake
-        run: cmake -S . -B build -G "MinGW Makefiles" -DBUILD_TESTING=ON
+        shell: msys2 {0}
+        run: cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
 
       - name: Build application and tests
+        shell: msys2 {0}
         run: cmake --build build --target StudentApp StudentTests --parallel
 
       - name: Run tests
+        shell: msys2 {0}
         run: ctest --test-dir build --output-on-failure
+
+      - name: Upload Student Application artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: StudentManagementSystem-Windows
+          path: build/StudentApp.exe
+          if-no-files-found: error
+          retention-days: 7
